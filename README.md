@@ -88,12 +88,122 @@ OUTPUT: values provided by the c++ program to the simulator
 * ["next_x"] <= 
 * ["next_y"] <= 
 
+The steering angle and the throttle are used to control the simulated vehicle
+and the other parameters are used to display the waypoints the MPC algorithm
+is using as input as well as the vehicle trajectory predicted by the MPC algorithm.
+
 ## Discussion
 
 ### Handling Latency
 
+The implementation provided here enforces a 100ms latency between the time when the
+actuators command are computed by the MPC algorithm and the moment it actually takes
+effect.
+
+Handling the latency properly required predicting the vehicle state 100ms in the
+future and using this as the starting point for the MPC algorithm.
+
+During this work the algorithm was initially implemented and tested without any latency
+in order to ensure the correctness of the algorithm.
+
+Then in a second the proper state prediction had to be determined. Without this the vehicle's
+trajectory was very unstable. Most of the time the vehicle constantly turn left and right
+and almost systematically end-up out of the road.
+
+Here is the code which is predicting the vehicle state 100ms in the future before starting
+the MPC algorithm itself:
+
+~~~.c++
+          // Estimate the vehicle state 100ms in the future to compensate the 100ms latency.
+          Eigen::VectorXd state(6);
+          double latency = 0.1;
+          double delta = j[1]["steering_angle"];
+          double acceleration = j[1]["throttle"];
+          double mph_to_ms = 0.44704;
+
+          double estimated_x = v * mph_to_ms * latency;
+
+          // The cross track error is calculated by evaluating the polynomial at x = 0.0.
+          double estimated_cte = polyeval(coeffs, estimated_x);
+
+          // The angle is changing over the latency period.
+          double estimated_psi = - v * mph_to_ms * delta / 2.67 * latency;
+          double estimated_y = v * mph_to_ms * sin(estimated_psi);
+
+          // The orientation error is the opposite of the polynomial derivative.
+          double estimated_epsi = -atan(coeffs[1] + 2 * coeffs[2] * estimated_x + 3 * coeffs[3] * estimated_x * estimated_x) - estimated_psi;
+
+          double estimated_v = v + acceleration * latency;
+          state << estimated_x, estimated_y, estimated_psi, estimated_v, estimated_cte, estimated_epsi;
+
+~~~
+
 ### Some Observations
 
+#### Number of timesteps and interval
+
+After quite some experimentation the number of timesteps  has been set to 8
+and the timestep period to 0.125 second.
+
+It was observed that an event horizon at 1 second in the future was adequate for
+a vehicle driving at that speed.
+
+The intuition is that it would probably be more appropriate to define this event
+horizon more in terms of distance in front of vehicle, rather than in time.
+
+#### Target speed
+
+The target speed has been set to about 100 kilometers/h (60 mph).
+
+However it is clear that introducing some logic to lower the target speed when
+the curvature of trajectory defined by the waypoints augments.
+
+This was clearly demonstrated by manual experiments where different target speeds
+were used.
+
+#### Cost function
+
+The cost function used by the MPC algorithm for the trajectory optimization also
+had to undergo quite some tuning.
+
+There is not really a unique solution to that problem, but it is quite sure that
+this implementation is not entirely stable.
+
+Here is the relevant code defining the cost function:
+
+~~~.c++
+      // The part of the cost based on the reference state.
+      for (unsigned int t = 0; t < N; t++) {
+        // Give a strong preference to the optimization of CTE and EPSI second
+        fg[0] += 500*CppAD::pow(vars[cte_start + t], 2);
+        fg[0] += 200*CppAD::pow(vars[epsi_start + t], 2);
+        // Speed is the last thing we want to optimize
+        fg[0] += CppAD::pow(vars[v_start + t] - ref_v, 2);
+      }
+
+      // Minimize the use of actuators.
+      for (unsigned int t = 0; t < N - 1; t++) {
+        // Use of actuators comes third.
+        fg[0] += 10*CppAD::pow(vars[steering_start + t], 2);
+        fg[0] += 10*CppAD::pow(vars[throttle_start + t], 2);
+      }
+
+      // Minimize the value gap between sequential actuations.
+      for (unsigned int t = 0; t < N - 2; t++) {
+        // Second priority is a smooth handling of the actuators.
+        fg[0] += 50*CppAD::pow(vars[steering_start + t + 1] - vars[steering_start + t], 2);
+        fg[0] += 10*CppAD::pow(vars[throttle_start + t + 1] - vars[throttle_start + t], 2);
+      }
+
+~~~
+
+While this implementation is functional and passes the tests I personally would
+not jump in the vehicle without a healthy dose of functional safety checks added
+to ensure that this algorithm doesn't occasionally make very bad decisions.
+
+In particular the algorithm is extremely sensitive to the slightest variations in latency
+induced by high CPU load, and could easily become unstable at high speed when this
+happened on the laptop used for testing.
 
 ### Results
 

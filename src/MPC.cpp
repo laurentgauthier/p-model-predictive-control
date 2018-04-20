@@ -5,9 +5,9 @@
 
 using CppAD::AD;
 
-// We set the number of timesteps to 20
+// We set the number of timesteps to 8
 // and the timestep evaluation frequency or evaluation
-// period to 0.05.
+// period to 0.125.
 size_t N = 8;
 double dt = 0.125;
 
@@ -24,7 +24,7 @@ double dt = 0.125;
 const double Lf = 2.67;
 
 // Both the reference cross track and orientation errors are 0.
-// The reference velocity is set to 40 mph.
+// The reference velocity is set to 60 mph.
 double ref_v = 60;
 
 // The solver takes all the state variables and actuator
@@ -53,7 +53,7 @@ class FG_eval {
 
       // The part of the cost based on the reference state.
       for (unsigned int t = 0; t < N; t++) {
-        // Give a strong preference to the optimization of CTE and EPSI
+        // Give a strong preference to the optimization of CTE and EPSI second
         fg[0] += 500*CppAD::pow(vars[cte_start + t], 2);
         fg[0] += 200*CppAD::pow(vars[epsi_start + t], 2);
         // Speed is the last thing we want to optimize
