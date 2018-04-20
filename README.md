@@ -56,7 +56,7 @@ Start the simulator and select the EKF scenario in the simulator:
 
     ./term2_sim_linux/term2_sim.x86_64
 
-### Run the PID Controller
+### Run the MPC Controller
 
 The executable can then be started:
 
@@ -67,20 +67,26 @@ watch the fireworks.
 
 ### How it Works
 
-The PID executable is using a simple protocol using uWebSocketIO to
+The MPC executable is using a simple protocol using uWebSocketIO to
 communicate with the simulator exchanging JSON-formatted messages.
 
 INPUT: values provided by the simulator to the c++ program
 
-* ["cte"] => the cross track error as reported by the simulator
-* ["speed"] => the speed of the vehicle as reported by the simulator
-* ["steering_angle"] => the steering angle as reported by the simulator
-
+* ["ptsx"] => 
+* ["ptsy"] => 
+* ["x"] => 
+* ["y"] => 
+* ["psi"] => 
+* ["speed"] => 
 
 OUTPUT: values provided by the c++ program to the simulator
 
-* ["steering_angle"] <= the steering command as computed by the PID controller
-* ["throttle"] <= set to a constant value of 0.3 in our experiments
+* ["steering_angle"] <= the steering command as computed by the MPC controller
+* ["throttle"] <= the throttle as computed by the MPC controller
+* ["mpc_x"] <= 
+* ["mpc_y"] <= 
+* ["next_x"] <= 
+* ["next_y"] <= 
 
 ## Discussion
 
