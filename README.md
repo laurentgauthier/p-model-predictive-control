@@ -1,7 +1,8 @@
 # Model Predictive Control
 
 This project controls the steering of a vehicle in a driving simulator
-using a model to predict the vehicle behavior and optimize the
+using a model to predict the vehicle behavior and optimize the control
+of the steering and throttle.
 
 [//]: # (Image References)
 
@@ -72,27 +73,29 @@ communicate with the simulator exchanging JSON-formatted messages.
 
 INPUT: values provided by the simulator to the c++ program
 
-* ["ptsx"] => 
-* ["ptsy"] => 
-* ["x"] => 
-* ["y"] => 
-* ["psi"] => 
-* ["speed"] => 
+* ["ptsx"] => x coordinates of the waypoints
+* ["ptsy"] => y coordinates of the waypoints
+* ["x"] => x coordinate of the current vehicle position
+* ["y"] => y coordinate of the current vehicle position
+* ["psi"] =>  current orientation of the vehicle (radians)
+* ["speed"] =>  current speed of the vehicle (mph)
 
 OUTPUT: values provided by the c++ program to the simulator
 
 * ["steering_angle"] <= the steering command as computed by the MPC controller
-* ["throttle"] <= the throttle as computed by the MPC controller
-* ["mpc_x"] <= 
-* ["mpc_y"] <= 
-* ["next_x"] <= 
-* ["next_y"] <= 
+* ["throttle"] <= the throttle command as computed by the MPC controller
+* ["mpc_x"] <= MPC prediction (for visualization)
+* ["mpc_y"] <= MPC prediction (for visualization)
+* ["next_x"] <= waypoints coordinates (for visualization)
+* ["next_y"] <= waypoints coordinates (for visualization)
 
 The steering angle and the throttle are used to control the simulated vehicle
-and the other parameters are used to display the waypoints the MPC algorithm
-is using as input as well as the vehicle trajectory predicted by the MPC algorithm.
+and the other parameters are used to display the next waypoints used as input
+as well as the vehicle trajectory predicted by the MPC algorithm.
 
 ## Discussion
+
+Here are some notes about the experiments made during the development of this project.
 
 ### Handling Latency
 
